@@ -112,6 +112,17 @@ class PostFxController:
         """True while the scroll-wheel hue-shift pass is running."""
         return self._hue_active
 
+    @property
+    def active_slot(self) -> int:
+        """Return the currently active quick-hit slot, or 0 when inactive."""
+        return self._active_slot
+
+    def clear_active_slot(self) -> None:
+        """Immediately clear the active quick-hit effect without touching hue shift."""
+        self._active_slot = 0
+        self._active_effect = None
+        self._active_t = 0.0
+
     def on_scroll(self, dy: int) -> None:
         """Accumulate hue offset from a mouse-wheel event and (re)arm the idle timer.
 
@@ -205,8 +216,7 @@ class PostFxController:
             self._active_t = max(0.0, self._active_t - dt)
             if self._active_t <= 0.0:
                 log.info('Post FX completed: slot=%d name=%s', self._active_slot, self.active_name)
-                self._active_slot = 0
-                self._active_effect = None
+                self.clear_active_slot()
 
         if hue_running:
             hue_src = self._hue_fbo.color_attachments[0] if slot_running else src_tex
