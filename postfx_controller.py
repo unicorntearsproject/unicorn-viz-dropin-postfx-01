@@ -22,6 +22,7 @@ from hue_shift import HueShift
 from lens_distortion_vignette import LensDistortionVignette
 from multi_pass_bloom import MultiPassBloom
 from radial_zoom_blur import RadialZoomBlur
+from time_scramble_warp import TimeScrambleWarp
 from temporal_feedback import TemporalFeedbackTrail
 
 log = logging.getLogger(__name__)
@@ -36,6 +37,7 @@ HELP_ENTRIES = [
     ('Post FX', 'Ctrl+Alt+6', 'Multi-pass Bloom'),
     ('Post FX', 'Ctrl+Alt+7', 'Radial Zoom Blur'),
     ('Post FX', 'Ctrl+Alt+8', 'Temporal Feedback Trail'),
+    ('Post FX', 'Ctrl+Alt+9', 'Time Scramble Warp'),
 ]
 
 
@@ -51,6 +53,7 @@ class PostFxController:
         (6, 'Multi-pass Bloom', True),
         (7, 'Radial Zoom Blur', True),
         (8, 'Temporal Feedback Trail', True),
+        (9, 'Time Scramble Warp', True),
     )
 
     def __init__(self, ctx: moderngl.Context, width: int, height: int, cfg: dict | None = None) -> None:
@@ -69,6 +72,7 @@ class PostFxController:
             6: MultiPassBloom(ctx, width, height),
             7: RadialZoomBlur(ctx, width, height),
             8: TemporalFeedbackTrail(ctx, width, height),
+            9: TimeScrambleWarp(ctx, width, height),
         }
         self._hit_duration = float(self._cfg.get('hit_duration', 0.9) or 0.9)
         self._slot_hit_duration: dict[int, float] = {
@@ -80,6 +84,7 @@ class PostFxController:
             6: float(self._cfg.get('slot6_duration', 1.20) or 1.20),
             7: float(self._cfg.get('slot7_duration', 0.95) or 0.95),
             8: float(self._cfg.get('slot8_duration', self._hit_duration) or self._hit_duration),
+            9: float(self._cfg.get('slot9_duration', 0.85) or 0.85),
         }
         self._active_slot: int = 0
         self._active_effect = None
@@ -153,10 +158,11 @@ class PostFxController:
 
     def trigger_slot(self, slot: int) -> str:
         """Trigger a one-shot post-process quick-hit by slot number."""
+        max_slot = max((s[0] for s in self.SLOT_MAP), default=0)
         if slot <= 0:
-            return 'Post FX: use Ctrl+Alt+1..8'
+            return f'Post FX: use Ctrl+Alt+1..{max_slot}'
 
-        if slot < 0 or slot > 8:
+        if slot < 0 or slot > max_slot:
             return f'Post FX: invalid slot {slot}'
 
         info = next((s for s in self.SLOT_MAP if s[0] == slot), None)
