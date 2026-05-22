@@ -22,6 +22,7 @@ from hue_shift import HueShift
 from lens_distortion_vignette import LensDistortionVignette
 from multi_pass_bloom import MultiPassBloom
 from radial_zoom_blur import RadialZoomBlur
+from scene_rotation import SceneRotation
 from time_scramble_warp import TimeScrambleWarp
 from temporal_feedback import TemporalFeedbackTrail
 
@@ -97,6 +98,15 @@ class PostFxController:
         self._hue_idle_t: float = 0.0
         self._hue_idle_timeout: float = float(self._cfg.get('hue_shift_timeout_s', 3.0) or 3.0)
         self._hue_step: float = float(self._cfg.get('hue_shift_step', 1.0 / 36.0) or 1.0 / 36.0)
+
+        # ── Scene-rotation continuous pass (ctrl+scroll driven) ─────────
+        self._scene_rotation = SceneRotation(ctx, width, height)
+        self._rot_angle: float = 0.0
+        self._rot_active: bool = False
+        self._rot_idle_t: float = 0.0
+        self._rot_idle_timeout: float = float(self._cfg.get('rotation_timeout_s', 3.0) or 3.0)
+        self._rot_step_rad: float = float(self._cfg.get('rotation_step_rad', 0.07) or 0.07)
+
         # Internal FBO used when slot and hue passes both need to chain.
         self._hue_fbo: moderngl.Framebuffer = ctx.framebuffer(
             color_attachments=[ctx.texture((width, height), 4)]
@@ -110,12 +120,18 @@ class PostFxController:
         return self.enabled and (
             (self._active_effect is not None and self._active_t > 0.0)
             or self._hue_active
+            or self._rot_active
         )
 
     @property
     def is_hue_active(self) -> bool:
         """True while the scroll-wheel hue-shift pass is running."""
         return self._hue_active
+
+    @property
+    def is_rotation_active(self) -> bool:
+        """True while the ctrl+scroll scene-rotation pass is running."""
+        return self._rot_active
 
     @property
     def active_slot(self) -> int:
@@ -140,12 +156,33 @@ class PostFxController:
         self._hue_active = True
         log.debug('Hue shift: offset=%.3f dy=%d', self._hue_offset, dy)
 
+    def on_ctrl_scroll(self, dy: int) -> None:
+        """Accumulate scene rotation from a ctrl+mouse-wheel event."""
+        if not self.enabled:
+            return
+        self._rot_angle += int(dy) * self._rot_step_rad
+        self._rot_idle_t = self._rot_idle_timeout
+        self._rot_active = True
+        log.debug('Scene rotation: angle=%.3f dy=%d', self._rot_angle, dy)
+
     def clear_hue_shift(self) -> None:
         """Immediately deactivate the hue-shift pass and reset the offset."""
         self._hue_active = False
         self._hue_idle_t = 0.0
         self._hue_offset = 0.0
         log.info('Hue shift cleared')
+
+    def clear_rotation(self) -> None:
+        """Immediately deactivate scene rotation and reset the angle."""
+        self._rot_active = False
+        self._rot_idle_t = 0.0
+        self._rot_angle = 0.0
+        log.info('Scene rotation cleared')
+
+    def clear_scroll_fx(self) -> None:
+        """Clear both continuous scroll-driven post-fx states."""
+        self.clear_hue_shift()
+        self.clear_rotation()
 
     @property
     def active_name(self) -> str:
@@ -203,9 +240,10 @@ class PostFxController:
     ) -> bool:
         """Apply active post-fx passes into dst_fbo.
 
-        Execution order when both passes are active:
+        Execution order when multiple passes are active:
           1. Slot one-shot → internal _hue_fbo
-          2. Hue shift from _hue_fbo → dst_fbo
+          2. Hue shift (if active)
+          3. Scene rotation (if active)
         When only one pass is active it writes directly to dst_fbo.
         """
         if not self.is_active():
@@ -213,11 +251,12 @@ class PostFxController:
 
         slot_running = self._active_effect is not None and self._active_t > 0.0
         hue_running = self._hue_active
+        rot_running = self._rot_active
 
         if slot_running:
             duration = self._slot_hit_duration.get(self._active_slot, self._hit_duration)
             strength = max(0.0, min(1.0, self._active_t / max(1e-6, duration)))
-            slot_dst = self._hue_fbo if hue_running else dst_fbo
+            slot_dst = self._hue_fbo if (hue_running or rot_running) else dst_fbo
             self._active_effect.apply(src_tex, slot_dst, dt, bass, mid, treble, beat, strength)
             self._active_t = max(0.0, self._active_t - dt)
             if self._active_t <= 0.0:
@@ -226,13 +265,27 @@ class PostFxController:
 
         if hue_running:
             hue_src = self._hue_fbo.color_attachments[0] if slot_running else src_tex
+            hue_dst = self._hue_fbo if rot_running else dst_fbo
             hue_strength = max(0.0, min(1.0, self._hue_idle_t / max(1e-6, self._hue_idle_timeout)))
             self._hue_shift.hue_offset = self._hue_offset
-            self._hue_shift.apply(hue_src, dst_fbo, dt, bass, mid, treble, beat, hue_strength)
+            self._hue_shift.apply(hue_src, hue_dst, dt, bass, mid, treble, beat, hue_strength)
             self._hue_idle_t = max(0.0, self._hue_idle_t - dt)
             if self._hue_idle_t <= 0.0:
                 self._hue_active = False
                 log.info('Hue shift expired (idle timeout)')
+
+        if rot_running:
+            if slot_running or hue_running:
+                rot_src = self._hue_fbo.color_attachments[0]
+            else:
+                rot_src = src_tex
+            rot_strength = max(0.0, min(1.0, self._rot_idle_t / max(1e-6, self._rot_idle_timeout)))
+            self._scene_rotation.angle = self._rot_angle
+            self._scene_rotation.apply(rot_src, dst_fbo, dt, bass, mid, treble, beat, rot_strength)
+            self._rot_idle_t = max(0.0, self._rot_idle_t - dt)
+            if self._rot_idle_t <= 0.0:
+                self._rot_active = False
+                log.info('Scene rotation expired (idle timeout)')
 
         return True
 
@@ -249,6 +302,7 @@ class PostFxController:
         except Exception as exc:
             log.warning('Post FX hue FBO resize failed: %s', exc)
         self._hue_shift.resize(width, height)
+        self._scene_rotation.resize(width, height)
         for effect in self._effects.values():
             try:
                 effect.resize(width, height)
@@ -258,6 +312,7 @@ class PostFxController:
     def destroy(self) -> None:
         try:
             self._hue_shift.destroy()
+            self._scene_rotation.destroy()
             self._hue_fbo.color_attachments[0].release()
             self._hue_fbo.release()
         except Exception as exc:
