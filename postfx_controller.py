@@ -23,6 +23,7 @@ from lens_distortion_vignette import LensDistortionVignette
 from multi_pass_bloom import MultiPassBloom
 from radial_zoom_blur import RadialZoomBlur
 from scene_rotation import SceneRotation
+from smoke_bubbles import SmokeBubbles
 from time_scramble_warp import TimeScrambleWarp
 from temporal_feedback import TemporalFeedbackTrail
 
@@ -39,6 +40,7 @@ HELP_ENTRIES = [
     ('Post FX', 'Ctrl+Alt+7', 'Radial Zoom Blur'),
     ('Post FX', 'Ctrl+Alt+8', 'Temporal Feedback Trail'),
     ('Post FX', 'Ctrl+Alt+9', 'Time Scramble Warp'),
+    ('Post FX', 'Ctrl+Alt+0', 'Smoke & Bubbles (club fog)'),
 ]
 
 
@@ -55,6 +57,7 @@ class PostFxController:
         (7, 'Radial Zoom Blur', True),
         (8, 'Temporal Feedback Trail', True),
         (9, 'Time Scramble Warp', True),
+        (10, 'Smoke & Bubbles', True),
     )
 
     def __init__(self, ctx: moderngl.Context, width: int, height: int, cfg: dict | None = None) -> None:
@@ -74,6 +77,7 @@ class PostFxController:
             7: RadialZoomBlur(ctx, width, height),
             8: TemporalFeedbackTrail(ctx, width, height),
             9: TimeScrambleWarp(ctx, width, height),
+            10: SmokeBubbles(ctx, width, height),
         }
         self._hit_duration = float(self._cfg.get('hit_duration', 0.9) or 0.9)
         self._slot_hit_duration: dict[int, float] = {
@@ -86,6 +90,7 @@ class PostFxController:
             7: float(self._cfg.get('slot7_duration', 0.95) or 0.95),
             8: float(self._cfg.get('slot8_duration', self._hit_duration) or self._hit_duration),
             9: float(self._cfg.get('slot9_duration', 0.85) or 0.85),
+            10: float(self._cfg.get('slot10_duration', 2.40) or 2.40),
         }
         self._active_slot: int = 0
         self._active_effect = None
