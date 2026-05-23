@@ -165,6 +165,15 @@ class PostFxController:
         self._rot_active = True
         log.debug('Scene rotation: angle=%.3f dy=%d', self._rot_angle, dy)
 
+    def on_ctrl_scroll_degrees(self, degrees: float) -> None:
+        """Accumulate scene rotation by explicit degree amount."""
+        if not self.enabled:
+            return
+        self._rot_angle += float(degrees) * 0.017453292519943295
+        self._rot_idle_t = self._rot_idle_timeout
+        self._rot_active = True
+        log.debug('Scene rotation: angle=%.3f deg=%.2f', self._rot_angle, float(degrees))
+
     def clear_hue_shift(self) -> None:
         """Immediately deactivate the hue-shift pass and reset the offset."""
         self._hue_active = False
