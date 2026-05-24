@@ -143,6 +143,17 @@ class PostFxController:
         """Return the currently active quick-hit slot, or 0 when inactive."""
         return self._active_slot
 
+    @property
+    def debug_summary(self) -> str:
+        """Compact runtime state string for HUD/debug overlays."""
+        slot = self._active_slot if self._active_slot > 0 else 0
+        name = self.active_name
+        return (
+            f'en={int(self.enabled)} slot={slot}:{name} t={self._active_t:.2f} '
+            f'hue={int(self._hue_active)}({self._hue_idle_t:.2f}) '
+            f'rot={int(self._rot_active)}({self._rot_idle_t:.2f})'
+        )
+
     def clear_active_slot(self) -> None:
         """Immediately clear the active quick-hit effect without touching hue shift."""
         self._active_slot = 0
