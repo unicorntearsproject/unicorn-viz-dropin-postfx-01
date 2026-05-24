@@ -46,3 +46,12 @@ latched toggles.
 
 - The built-in Ctrl+U burst remains in core system code by design.
 - This drop-in is optional; app runs normally when absent.
+
+---
+
+## Structured Docs
+
+- docs/operations.md
+- docs/configuration.md
+- docs/integration.md
+- docs/troubleshooting.md
