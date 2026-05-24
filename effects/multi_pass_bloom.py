@@ -6,7 +6,7 @@ import logging
 import moderngl
 import numpy as np
 
-from base import FullscreenPass
+from postfx_effects_base import FullscreenPass
 
 log = logging.getLogger(__name__)
 

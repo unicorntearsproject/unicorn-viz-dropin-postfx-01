@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import moderngl
 
-from base import FullscreenPass
+from postfx_effects_base import FullscreenPass
 
 
 class ChromaticAberration:

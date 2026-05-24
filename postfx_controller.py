@@ -5,27 +5,54 @@ Loads post-process effects from effects/ and applies one active effect globally.
 from __future__ import annotations
 
 import logging
+import importlib.util
 import sys
 from pathlib import Path
 
 import moderngl
 
 _EFFECTS_DIR = Path(__file__).resolve().parent / 'effects'
-if str(_EFFECTS_DIR) not in sys.path:
-    sys.path.insert(0, str(_EFFECTS_DIR))
 
-from chromatic_aberration import ChromaticAberration
-from film_grain_dither import FilmGrainDither
-from glitch_slices import GlitchSlices
-from heat_haze_refraction import HeatHazeRefraction
-from hue_shift import HueShift
-from lens_distortion_vignette import LensDistortionVignette
-from multi_pass_bloom import MultiPassBloom
-from radial_zoom_blur import RadialZoomBlur
-from scene_rotation import SceneRotation
-from smoke_bubbles import SmokeBubbles
-from time_scramble_warp import TimeScrambleWarp
-from temporal_feedback import TemporalFeedbackTrail
+
+def _load_effect_class(module_filename: str, class_name: str) -> type:
+    """Load one post-fx effect class from effects/ using isolated module names."""
+    path = _EFFECTS_DIR / module_filename
+    spec = importlib.util.spec_from_file_location(
+        f'postfx_effect_{path.stem}_{abs(hash(str(path)))}',
+        path,
+    )
+    if spec is None or spec.loader is None:
+        raise ImportError(f'PostFX: failed to load {path}')
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    cls = getattr(mod, class_name, None)
+    if cls is None:
+        raise ImportError(f'PostFX: {class_name} missing in {path}')
+    return cls
+
+
+_BASE_SPEC = importlib.util.spec_from_file_location(
+    'postfx_effects_base',
+    _EFFECTS_DIR / 'base.py',
+)
+if _BASE_SPEC is None or _BASE_SPEC.loader is None:
+    raise ImportError(f'PostFX: failed to load {_EFFECTS_DIR / "base.py"}')
+_BASE_MOD = importlib.util.module_from_spec(_BASE_SPEC)
+sys.modules['postfx_effects_base'] = _BASE_MOD
+_BASE_SPEC.loader.exec_module(_BASE_MOD)
+
+ChromaticAberration = _load_effect_class('chromatic_aberration.py', 'ChromaticAberration')
+FilmGrainDither = _load_effect_class('film_grain_dither.py', 'FilmGrainDither')
+GlitchSlices = _load_effect_class('glitch_slices.py', 'GlitchSlices')
+HeatHazeRefraction = _load_effect_class('heat_haze_refraction.py', 'HeatHazeRefraction')
+HueShift = _load_effect_class('hue_shift.py', 'HueShift')
+LensDistortionVignette = _load_effect_class('lens_distortion_vignette.py', 'LensDistortionVignette')
+MultiPassBloom = _load_effect_class('multi_pass_bloom.py', 'MultiPassBloom')
+RadialZoomBlur = _load_effect_class('radial_zoom_blur.py', 'RadialZoomBlur')
+SceneRotation = _load_effect_class('scene_rotation.py', 'SceneRotation')
+SmokeBubbles = _load_effect_class('smoke_bubbles.py', 'SmokeBubbles')
+TimeScrambleWarp = _load_effect_class('time_scramble_warp.py', 'TimeScrambleWarp')
+TemporalFeedbackTrail = _load_effect_class('temporal_feedback.py', 'TemporalFeedbackTrail')
 
 log = logging.getLogger(__name__)
 
@@ -95,6 +122,7 @@ class PostFxController:
         self._active_slot: int = 0
         self._active_effect = None
         self._active_t: float = 0.0
+        self._debug_apply_signature: tuple[bool, bool, bool, int] | None = None
 
         # ── Hue-shift continuous pass (scroll-wheel driven) ──────────────
         self._hue_shift = HueShift(ctx, width, height)
@@ -120,6 +148,15 @@ class PostFxController:
         default_slot = int(self._cfg.get('active_slot', 0) or 0)
         if default_slot > 0:
             self.trigger_slot(default_slot)
+
+        log.debug(
+            'PostFX init: enabled=%s size=%dx%d active_slot=%d durations=%s',
+            self.enabled,
+            self._width,
+            self._height,
+            default_slot,
+            self._slot_hit_duration,
+        )
 
     def is_active(self) -> bool:
         return self.enabled and (
@@ -277,6 +314,18 @@ class PostFxController:
         slot_running = self._active_effect is not None and self._active_t > 0.0
         hue_running = self._hue_active
         rot_running = self._rot_active
+
+        signature = (slot_running, hue_running, rot_running, self._active_slot)
+        if signature != self._debug_apply_signature:
+            log.debug(
+                'PostFX apply state: slot=%s hue=%s rot=%s active_slot=%d t=%.3f',
+                slot_running,
+                hue_running,
+                rot_running,
+                self._active_slot,
+                self._active_t,
+            )
+            self._debug_apply_signature = signature
 
         if slot_running:
             duration = self._slot_hit_duration.get(self._active_slot, self._hit_duration)

@@ -5,7 +5,7 @@ import logging
 
 import moderngl
 
-from base import FullscreenPass
+from postfx_effects_base import FullscreenPass
 
 log = logging.getLogger(__name__)
 
