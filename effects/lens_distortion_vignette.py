@@ -68,7 +68,7 @@ void main() {
         s = max(0.0, min(1.0, float(strength)))
         distort_val = 0.38 * (0.40 + 0.60 * s) + beat * 0.12
         vignette_val = 0.75 * (0.45 + 0.55 * s) + bass * 0.15
-        log.info('LensDistortionVignette firing: strength=%.2f distort=%.4f vignette=%.4f', s, distort_val, vignette_val)
+        log.debug('LensDistortionVignette firing: strength=%.2f distort=%.4f vignette=%.4f', s, distort_val, vignette_val)
         self._pass.prog['uDistort'].value = distort_val
         self._pass.prog['uVignette'].value = vignette_val
         self._pass.vao.render(moderngl.TRIANGLE_STRIP)

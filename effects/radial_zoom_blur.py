@@ -70,7 +70,7 @@ void main() {
         zoom_strength = 0.20 + 0.65 * s + min(0.18, beat * 0.22 + bass * 0.14)
         self._pass.prog['uStrength'].value = zoom_strength
         self._pass.vao.render(moderngl.TRIANGLE_STRIP)
-        log.info('RadialZoomBlur firing: strength=%.2f zoom=%.3f', s, zoom_strength)
+        log.debug('RadialZoomBlur firing: strength=%.2f zoom=%.3f', s, zoom_strength)
 
     def resize(self, width: int, height: int) -> None:
         self._width = width

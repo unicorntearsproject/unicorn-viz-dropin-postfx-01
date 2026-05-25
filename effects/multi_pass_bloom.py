@@ -177,7 +177,7 @@ class MultiPassBloom:
         intensity = 1.8 + s * 3.5 + bass * 1.6 + beat * 1.2
         bw, bh = self._bright_fbo.size
 
-        log.info(
+        log.debug(
             'MultiPassBloom firing: strength=%.2f threshold=%.3f intensity=%.3f',
             s, threshold, intensity,
         )

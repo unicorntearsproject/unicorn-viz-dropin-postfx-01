@@ -102,7 +102,7 @@ void main() {
         s = max(0.0, min(1.0, float(strength)))
         grain_val = (0.065 + beat * 0.035 + treble * 0.025) * (0.50 + 0.50 * s)
         dither_val = (0.028 + treble * 0.014) * (0.50 + 0.50 * s)
-        log.info('FilmGrainDither firing: strength=%.2f grain=%.4f dither=%.4f', s, grain_val, dither_val)
+        log.debug('FilmGrainDither firing: strength=%.2f grain=%.4f dither=%.4f', s, grain_val, dither_val)
         self._pass.prog['uGrain'].value = grain_val
         self._pass.prog['uDither'].value = dither_val
         self._pass.vao.render(moderngl.TRIANGLE_STRIP)

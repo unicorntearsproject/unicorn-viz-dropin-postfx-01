@@ -232,14 +232,14 @@ class PostFxController:
         self._hue_active = False
         self._hue_idle_t = 0.0
         self._hue_offset = 0.0
-        log.info('Hue shift cleared')
+        log.debug('Hue shift cleared')
 
     def clear_rotation(self) -> None:
         """Immediately deactivate scene rotation and reset the angle."""
         self._rot_active = False
         self._rot_idle_t = 0.0
         self._rot_angle = 0.0
-        log.info('Scene rotation cleared')
+        log.debug('Scene rotation cleared')
 
     def clear_scroll_fx(self) -> None:
         """Clear both continuous scroll-driven post-fx states."""
@@ -283,7 +283,7 @@ class PostFxController:
                 reset()
             except Exception as exc:
                 log.warning('Post FX reset failed for %s: %s', slot_name, exc)
-        log.info('Post FX fired: slot=%d name=%s duration=%.2fs', slot, slot_name, self._active_t)
+        log.debug('Post FX fired: slot=%d name=%s duration=%.2fs', slot, slot_name, self._active_t)
         return f'Post FX {slot}: {slot_name}'
 
     # Backward compatibility with earlier API name.
@@ -334,7 +334,7 @@ class PostFxController:
             self._active_effect.apply(src_tex, slot_dst, dt, bass, mid, treble, beat, strength)
             self._active_t = max(0.0, self._active_t - dt)
             if self._active_t <= 0.0:
-                log.info('Post FX completed: slot=%d name=%s', self._active_slot, self.active_name)
+                log.debug('Post FX completed: slot=%d name=%s', self._active_slot, self.active_name)
                 self.clear_active_slot()
 
         if hue_running:
@@ -346,7 +346,7 @@ class PostFxController:
             self._hue_idle_t = max(0.0, self._hue_idle_t - dt)
             if self._hue_idle_t <= 0.0:
                 self._hue_active = False
-                log.info('Hue shift expired (idle timeout)')
+                log.debug('Hue shift expired (idle timeout)')
 
         if rot_running:
             if slot_running or hue_running:
@@ -359,7 +359,7 @@ class PostFxController:
             self._rot_idle_t = max(0.0, self._rot_idle_t - dt)
             if self._rot_idle_t <= 0.0:
                 self._rot_active = False
-                log.info('Scene rotation expired (idle timeout)')
+                log.debug('Scene rotation expired (idle timeout)')
 
         return True
 

@@ -82,7 +82,7 @@ void main() {
         amt = 0.30 + 0.60 * s + min(0.22, beat * 0.18 + treble * 0.12)
         self._pass.prog['uAmount'].value = amt
         self._pass.vao.render(moderngl.TRIANGLE_STRIP)
-        log.info('GlitchSlices firing: strength=%.2f amount=%.3f', s, amt)
+        log.debug('GlitchSlices firing: strength=%.2f amount=%.3f', s, amt)
 
     def resize(self, width: int, height: int) -> None:
         self._width = width

@@ -98,7 +98,7 @@ void main() {
         self._pass.prog['uAmount'].value = amount
         self._pass.prog['uSpeed'].value = speed
         self._pass.vao.render(moderngl.TRIANGLE_STRIP)
-        log.info('HeatHazeRefraction firing: strength=%.2f amount=%.4f speed=%.3f', s, amount, speed)
+        log.debug('HeatHazeRefraction firing: strength=%.2f amount=%.4f speed=%.3f', s, amount, speed)
 
     def reset(self) -> None:
         """Keep time running; reset has no visible benefit for continuous noise."""
