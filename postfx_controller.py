@@ -88,6 +88,35 @@ class PostFxController:
         (10, 'Smoke & Bubbles', True),
     )
 
+    # Curated friend pairings for Post-FX ping-pong.
+    # Keys are slot numbers; values are tuples of friendly partner slots.
+    # Pairings are symmetric: if A lists B, B lists A.
+    POSTFX_FRIENDS: dict[int, tuple[int, ...]] = {
+        1: (3, 7),    # Chromatic Aberration ↔ Glitch Slices, Radial Zoom Blur
+        3: (1, 9),    # Glitch Slices ↔ Chromatic Aberration, Time Scramble Warp
+        4: (9, 8),    # Heat Haze ↔ Time Scramble Warp, Temporal Feedback Trail
+        6: (7, 5),    # Bloom ↔ Radial Zoom Blur, Lens Distortion
+        7: (6, 1),    # Radial Zoom Blur ↔ Bloom, Chromatic Aberration
+        8: (4, 9),    # Temporal Feedback Trail ↔ Heat Haze, Time Scramble Warp
+        9: (3, 4),    # Time Scramble Warp ↔ Glitch Slices, Heat Haze
+    }
+
+    @classmethod
+    def friend_pairs(cls) -> list[tuple[int, int]]:
+        """Return a deduplicated list of (a, b) slot pairs from POSTFX_FRIENDS.
+
+        Each pair appears exactly once with a < b.
+        """
+        seen: set[tuple[int, int]] = set()
+        result: list[tuple[int, int]] = []
+        for slot, partners in cls.POSTFX_FRIENDS.items():
+            for partner in partners:
+                pair = (min(slot, partner), max(slot, partner))
+                if pair not in seen:
+                    seen.add(pair)
+                    result.append(pair)
+        return sorted(result)
+
     def __init__(self, ctx: moderngl.Context, width: int, height: int, cfg: dict | None = None) -> None:
         self._ctx = ctx
         self._width = width
