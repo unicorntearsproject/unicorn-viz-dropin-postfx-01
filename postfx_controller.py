@@ -8,6 +8,7 @@ import logging
 import importlib.util
 import sys
 from pathlib import Path
+from typing import Any
 
 import moderngl
 
@@ -157,6 +158,28 @@ class PostFxController:
             default_slot,
             self._slot_hit_duration,
         )
+        self._vj_api: Any = None
+
+    def set_vj_api(self, api: Any) -> None:
+        """Inject the VJApi instance after construction."""
+        self._vj_api = api
+
+    def handle_key(self, sym: int, mod: int) -> 'str | None | bool':
+        """Handle Ctrl+Alt+1..9/0 — select post-FX slot."""
+        import sdl2  # noqa: PLC0415
+        if (mod & sdl2.KMOD_CTRL) and (mod & sdl2.KMOD_ALT):
+            if sdl2.SDLK_1 <= sym <= sdl2.SDLK_9:
+                slot = sym - sdl2.SDLK_0
+                if self._vj_api is not None:
+                    return self._vj_api.select_postfx_slot(slot)
+                self.trigger_slot(slot)
+                return f'PostFX slot {slot}'
+            if sym == sdl2.SDLK_0:
+                if self._vj_api is not None:
+                    return self._vj_api.select_postfx_slot(10)
+                self.trigger_slot(10)
+                return 'PostFX slot 10'
+        return False
 
     def is_active(self) -> bool:
         return self.enabled and (
