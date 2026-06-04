@@ -117,6 +117,31 @@ class PostFxController:
                     result.append(pair)
         return sorted(result)
 
+    @classmethod
+    def friend_groups(cls) -> list[tuple[int, ...]]:
+        """Return all friend groups (pairs and trios) from POSTFX_FRIENDS.
+
+        Includes every pair from ``friend_pairs()`` plus every distinct 3-way
+        group implied by entries that have two partners.  Each group is
+        deduplicated (same set of slots only appears once) and sorted
+        internally by slot number.
+        """
+        seen: set[frozenset[int]] = set()
+        result: list[tuple[int, ...]] = []
+        for pair in cls.friend_pairs():
+            key = frozenset(pair)
+            if key not in seen:
+                seen.add(key)
+                result.append(pair)
+        for slot, partners in cls.POSTFX_FRIENDS.items():
+            if len(partners) >= 2:
+                trio = tuple(sorted((slot,) + partners[:2]))
+                key = frozenset(trio)
+                if key not in seen:
+                    seen.add(key)
+                    result.append(trio)
+        return result
+
     def __init__(self, ctx: moderngl.Context, width: int, height: int, cfg: dict | None = None) -> None:
         self._ctx = ctx
         self._width = width
