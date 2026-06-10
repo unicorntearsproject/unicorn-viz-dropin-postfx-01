@@ -58,6 +58,13 @@ TemporalFeedbackTrail = _load_effect_class('temporal_feedback.py', 'TemporalFeed
 log = logging.getLogger(__name__)
 
 
+DROPIN_CAPABILITIES = {
+    'name': 'postfx',
+    'class_symbol': 'PostFxController',
+    'key_handler_attr': 'handle_key',
+}
+
+
 HELP_ENTRIES = [
     ('Post FX', 'Ctrl+Alt+1', 'Chromatic Aberration'),
     ('Post FX', 'Ctrl+Alt+2', 'Film Grain + Dither'),
