@@ -226,9 +226,17 @@ class PostFxController:
         self._vj_api = api
 
     def handle_key(self, sym: int, mod: int) -> 'str | None | bool':
-        """Handle Ctrl+Alt+1..9/0 — select post-FX slot."""
+        """Handle Ctrl+Alt+1..9/0 — select post-FX slot.
+
+        Shift is explicitly excluded so the ``Ctrl+Shift+Alt`` app leader (used by
+        other drop-ins, e.g. the OSC bridge) does not collide with the digit slots.
+        """
         import sdl2  # noqa: PLC0415
-        if (mod & sdl2.KMOD_CTRL) and (mod & sdl2.KMOD_ALT):
+        if (
+            (mod & sdl2.KMOD_CTRL)
+            and (mod & sdl2.KMOD_ALT)
+            and not (mod & sdl2.KMOD_SHIFT)
+        ):
             if sdl2.SDLK_1 <= sym <= sdl2.SDLK_9:
                 slot = sym - sdl2.SDLK_0
                 if self._vj_api is not None:
