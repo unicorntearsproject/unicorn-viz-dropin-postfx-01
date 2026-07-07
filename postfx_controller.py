@@ -76,9 +76,9 @@ HELP_ENTRIES = [
     ('Post FX', 'Ctrl+Alt+8', 'Temporal Feedback Trail'),
     ('Post FX', 'Ctrl+Alt+9', 'Time Scramble Warp'),
     ('Post FX', 'Ctrl+Alt+0', 'Smoke & Bubbles (club fog)'),
-    ('Post FX', 'Wheel Up/Down', 'Hue-shift frame (lasts 3 s idle)'),
-    ('Post FX', 'Ctrl+Wheel Up/Down', 'Rotate scene frame (lasts 3 s idle)'),
-    ('Post FX', 'Middle Click', 'Reset scroll FX (hue/rotation)'),
+    ('Mouse', 'Wheel Up/Down', 'Hue-shift frame (lasts 3 s idle)'),
+    ('Mouse', 'Ctrl+Wheel Up/Down', 'Rotate scene frame (lasts 3 s idle)'),
+    ('Mouse', 'Middle Click', 'Reset scroll FX (hue/rotation)'),
 ]
 
 
