@@ -4,6 +4,8 @@ Loads post-process effects from effects/ and applies one active effect globally.
 """
 from __future__ import annotations
 
+__version__ = '1.0.0-rc.1'
+
 import logging
 import importlib.util
 import sys

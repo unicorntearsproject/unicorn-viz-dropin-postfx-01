@@ -1,5 +1,8 @@
 # postfx-01
 
+**Version 1.0.0-rc.1**
+
+
 System-level post-process drop-in stack for Unicorn Viz.
 
 This drop-in hosts post-process effects in `effects/` so new effects can be
@@ -55,3 +58,7 @@ latched toggles.
 - docs/configuration.md
 - docs/integration.md
 - docs/troubleshooting.md
+
+## Changelog
+
+- **1.0.0-rc.1** — initial versioned release.
