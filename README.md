@@ -1,6 +1,6 @@
 # postfx-01
 
-**Version 1.0.0-rc.1**
+**Version 1.0.0-rc.2**
 
 
 System-level post-process drop-in stack for Unicorn Viz.
@@ -61,4 +61,12 @@ latched toggles.
 
 ## Changelog
 
+- **1.0.0-rc.2** — **Control Room panel (P2 of
+  `docs/planning/control-room-drop-in-integration-plan-2026-09-05.md`).**
+  Registers a full-width `postfx` panel on the shared `fx` page (one button
+  per implemented slot plus CLR, routed through the same `trigger_slot()` /
+  `clear_active_slot()` the hotkeys use), unregistered in `destroy()`. Retires
+  control-room-01's hardcoded POST FX row, which read `vj_api.postfx_slots()`
+  / `set_postfx_slot()` — a duck-typed reach into this controller's own
+  `SLOT_MAP` via app internals.
 - **1.0.0-rc.1** — initial versioned release.

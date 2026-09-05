@@ -4,7 +4,7 @@ Loads post-process effects from effects/ and applies one active effect globally.
 """
 from __future__ import annotations
 
-__version__ = '1.0.0-rc.1'
+__version__ = '1.0.0-rc.2'
 
 import logging
 import importlib.util
@@ -229,6 +229,69 @@ class PostFxController:
     def set_vj_api(self, api: Any) -> None:
         """Inject the VJApi instance after construction."""
         self._vj_api = api
+        # Control Room panel (docs/planning/control-room-drop-in-integration-
+        # plan-2026-09-05.md, P2): retires control-room-01's hardcoded POST FX
+        # panel, which read vj_api.postfx_slots()/set_postfx_slot() -- a
+        # duck-typed reach into this controller's own SLOT_MAP via app
+        # internals. size='full' (not the plan draft's 'large'): up to
+        # eleven single/double-character buttons (one per slot + CLR) need
+        # the whole row's width to have any realistic chance of not getting
+        # silently truncated by the packer's single-row button flow.
+        register = getattr(api, 'register_operator_panel', None)
+        if callable(register):
+            try:
+                from unicornviz.operator_panels import OperatorPanel  # noqa: PLC0415
+                register(OperatorPanel(
+                    name='postfx',
+                    title='Post FX',
+                    page='fx',
+                    priority=100,
+                    size='full',
+                    content=self._operator_panel_content,
+                    on_action=self._operator_panel_action,
+                    tooltips={
+                        **{f'slot_{slot}': f'{name} (Ctrl+Alt+{slot % 10})' for slot, name, _impl in self.SLOT_MAP},
+                        'clear': 'Clear the active post-FX slot',
+                    },
+                ))
+            except Exception as exc:
+                log.debug('postfx-01: operator panel registration failed: %s', exc)
+
+    def _operator_panel_content(self) -> Any:
+        """Control Room panel state -- CR render thread; property reads only."""
+        from unicornviz.operator_panels import PanelButton, PanelContent, PanelRow  # noqa: PLC0415
+        active = self.active_slot
+        rows = []
+        if self.is_hue_active:
+            rows.append(PanelRow('Hue shift', 'active', emphasis='accent'))
+        if self.is_rotation_active:
+            rows.append(PanelRow('Rotation', 'active', emphasis='accent'))
+        return PanelContent(
+            status=self.active_name if active else ('ON' if self.enabled else 'OFF'),
+            rows=tuple(rows),
+            buttons=(
+                *(
+                    PanelButton(f'slot_{slot}', str(slot), active=slot == active)
+                    for slot, _name, implemented in self.SLOT_MAP
+                    if implemented
+                ),
+                PanelButton('clear', 'CLR', accent='danger'),
+            ),
+        )
+
+    def _operator_panel_action(self, action: str, _payload: Any) -> str | None:
+        """Control Room buttons -> the same trigger_slot()/clear_active_slot()
+        the numeric hotkeys use."""
+        if action == 'clear':
+            self.clear_active_slot()
+            return 'Post FX cleared'
+        if action.startswith('slot_'):
+            try:
+                slot = int(action[len('slot_'):])
+            except ValueError:
+                return None
+            return self.trigger_slot(slot)
+        return None
 
     def handle_key(self, sym: int, mod: int) -> 'str | None | bool':
         """Handle Ctrl+Alt+1..9/0 — select post-FX slot.
@@ -481,6 +544,13 @@ class PostFxController:
                 log.warning('Post FX resize failed for %s: %s', getattr(effect, 'NAME', type(effect).__name__), exc)
 
     def destroy(self) -> None:
+        # Drop the Control Room panel first (operator_panels.py "Lifecycle").
+        unregister = getattr(self._vj_api, 'unregister_operator_panel', None)
+        if callable(unregister):
+            try:
+                unregister('postfx')
+            except Exception:
+                pass
         try:
             self._hue_shift.destroy()
             self._scene_rotation.destroy()
