@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 
 import moderngl
-import numpy as np
 
 from postfx_effects_base import FullscreenPass
 
